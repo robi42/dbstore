@@ -18,7 +18,7 @@ var system = require('helma.system');
 var {partial} = require('helma.functional');
 var log = require('helma.logging').getLogger(__name__);
 
-__shared__ = true;
+var __shared__ = true;
 
 
 // used for holding the Store instance
