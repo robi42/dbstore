@@ -202,7 +202,7 @@ this.initStore();
 /**
  * Generic constructor, wrapping model prototypes into (decorated) ScriptableMap objects.
  */
-function makeStorable(object, properties) {
+function Storable(object, properties) {
    if (!(object instanceof Object) || !(object.constructor instanceof Function)) {
       throw new Error('object must be an object, is: ' + object);
    }
@@ -222,16 +222,11 @@ function makeStorable(object, properties) {
       throw new Error("couldn't get type: " + type);
    }
 
-   var scriptableMap = new ScriptableMap(new java.util.HashMap());
-
-   // add all instance methods of object to scriptableMap
-   for (i in object) {
-      scriptableMap[i] = object[i];
-   }
+   var scriptableMap = new ScriptableMap(new java.util.HashMap(object));
 
    // add all properties and set $type$, accordingly
-   for (j in properties) {
-      scriptableMap[j] = properties[j];
+   for (var i in properties) {
+      scriptableMap[i] = properties[i];
    }
    scriptableMap.$type$ = type;
 
