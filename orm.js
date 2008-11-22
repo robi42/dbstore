@@ -14,7 +14,7 @@ addToClasspath('lib/jta-1.1.jar');
 addToClasspath('lib/slf4j-api-1.4.2.jar');
 addToClasspath('lib/slf4j-log4j12-1.4.2.jar');
 
-var system = require('helma.system');
+import('helma.system', 'system');
 var {partial} = require('helma.functional');
 var log = require('helma.logging').getLogger(__name__);
 
@@ -165,6 +165,45 @@ this.initStore();
 
 
    /**
+    * To be used for wrapping model objects into (decorated) ScriptableMaps to enable persistance.
+    */
+   this.makeStorable = function (object, properties) {
+      if (!(object instanceof Object) || !(object.constructor instanceof Function)) {
+         throw new Error('object must be an object, is: ' + object);
+      }
+      if (!(object.constructor instanceof Function)) {
+         throw new Error('object must have a constructor property, has: ' + object.constructor);
+      }
+
+      if (properties === undefined) {
+         properties = {};
+      }
+      if (!(properties instanceof Object)) {
+         throw new Error('properties must be an object, is: ' + properties);
+      }
+
+      var type = object.constructor.name;
+      if (typeof type != 'string') {
+         throw new Error("couldn't get type: " + type);
+      }
+
+      var scriptableMap = new ScriptableMap(new java.util.HashMap(object));
+
+      // add all properties and set $type$, accordingly
+      for (var i in properties) {
+         scriptableMap[i] = properties[i];
+      }
+      scriptableMap.$type$ = type;
+
+      log.debug(type + ' constructed.');
+
+      scriptableMap = this.addDaoMethods(scriptableMap);
+
+      return scriptableMap;
+   };
+
+
+   /**
     * Used for decorating model objects with save() and remove() DAO convenience methods.
     */
    this.addDaoMethods = function (object) {
@@ -200,46 +239,6 @@ this.initStore();
 
 
 /**
- * Generic constructor, wrapping model prototypes into (decorated) ScriptableMap objects.
- */
-function Storable(object, properties) {
-   if (!(object instanceof Object) || !(object.constructor instanceof Function)) {
-      throw new Error('object must be an object, is: ' + object);
-   }
-   if (!(object.constructor instanceof Function)) {
-      throw new Error('object must have a constructor property, has: ' + object.constructor);
-   }
-
-   if (properties === undefined) {
-      properties = {};
-   }
-   if (!(properties instanceof Object)) {
-      throw new Error('properties must be an object, is: ' + properties);
-   }
-
-   var type = object.constructor.name;
-   if (typeof type != 'string') {
-      throw new Error("couldn't get type: " + type);
-   }
-
-   var scriptableMap = new ScriptableMap(new java.util.HashMap(object));
-
-   // add all properties and set $type$, accordingly
-   for (var i in properties) {
-      scriptableMap[i] = properties[i];
-   }
-   scriptableMap.$type$ = type;
-
-   // decorate scriptableMap with DAO convenience methods
-   scriptableMap = addDaoMethods(scriptableMap);
-
-   log.debug(type + ' constructed.');
-
-   return scriptableMap;
-}
-
-
-/**
  * To be used for installing DAO functionality methods on model constructors and
  * registering types for being able to decorate corresponding model objects with
  * resp. instance methods when fetched from DB.
@@ -247,17 +246,19 @@ function Storable(object, properties) {
 function Store() {
    this.typeRegistry = {};
 
-   this.registerType = function (ctor) {
-      log.debug(ctor.name + ' type registered.');
+   this.registerType = function (constructor) {
+      var typeName = constructor.name;
 
       // install get, find, all and list methods on constructor
-      ctor.get  = partial(this.get, ctor.name);
-      ctor.find = partial(this.find, ctor.name);
-      ctor.all  = partial(this.getAll, ctor.name);
-      ctor.list = partial(this.list, ctor.name);
+      constructor.get  = partial(this.get, typeName);
+      constructor.find = partial(this.find, typeName);
+      constructor.all  = partial(this.getAll, typeName);
+      constructor.list = partial(this.list, typeName);
 
       // add type to registry
-      this.typeRegistry[ctor.name] = ctor;
+      this.typeRegistry[typeName] = constructor;
+
+      log.debug(typeName + ' type registered.');
    };
 
 
