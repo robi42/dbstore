@@ -182,9 +182,9 @@ this.initStore();
          throw new Error('properties must be an object, is: ' + properties);
       }
 
-      var type = object.constructor.name;
-      if (typeof type != 'string') {
-         throw new Error("couldn't get type: " + type);
+      var typeName = object.constructor.name;
+      if (typeof typeName != 'string') {
+         throw new Error("couldn't get type: " + typeName);
       }
 
       var scriptableMap = new ScriptableMap(new java.util.HashMap(object));
@@ -193,9 +193,9 @@ this.initStore();
       for (var i in properties) {
          scriptableMap[i] = properties[i];
       }
-      scriptableMap.$type$ = type;
+      scriptableMap.$type$ = typeName;
 
-      log.debug(type + ' constructed.');
+      log.debug(typeName + ' constructed.');
 
       scriptableMap = this.addDaoMethods(scriptableMap);
 
