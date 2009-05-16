@@ -23,38 +23,22 @@ var __shared__ = true;
 var log = require('helma/logging').getLogger(__name__);
 
 // used to get paths of hibernate.properties and mapping files
-var configPropsFileRelativePath;
+var configPropsFileRelativePath = 'config/hibernate.properties';
 var mappingsDirRelativePath = 'db/mappings';
-var isConfigured = false;
-var config, sessionFactory;
-var session = getSession();
-
-/**
- * Use this for setting the path in which hibernate.properties file resides.
- */
-function setConfigPath(path) {
-    configPropsFileRelativePath = path + '/hibernate.properties';
-}
-
-/**
- * Use this for setting the path where the *.hbm.xml mapping files resides.
- */
-function setMappingsDir(path) {
-    mappingsDirRelativePath = path;
-}
+var config, isConfigured = false;
+var sessionFactory, session = getSession();
 
 /**
  * Begins a Hibernate Session transaction.
  */
 function beginTxn() {
-    var txn = null;
     try {
-        txn = session.beginTransaction();
+        var txn = session.beginTransaction();
     } catch (e) {
         txn.rollback();
-        log.error('Error in beginTxn: ' + e.toString());
+        log.error('Error in beginTxn: ' + e.message);
+        throw e;
     }
-    return txn;
 }
 
 /**
@@ -66,7 +50,8 @@ function commitTxn() {
         txn.commit();
     } catch (e) {
         txn.rollback();
-        log.error('Error in commitTxn: ' + e.toString());
+        log.error('Error in commitTxn: ' + e.message);
+        throw e;
     }
 }
 
@@ -120,8 +105,8 @@ function configure() {
 }
 
 function get(type, id) {
-    return new Storable(type, new ScriptableMap(session.
-            get(new java.lang.String(type), new java.lang.Long(id))));
+    return new Storable(type, new ScriptableMap(session
+            .get(new java.lang.String(type), new java.lang.Long(id))));
 }
 
 function save(props, entity, entities) {
@@ -144,8 +129,8 @@ function save(props, entity, entities) {
         entity.put(id, value);
     }
     if (isRoot) {
-        var obj;
-        for (var i = 0; i < entities.size(); i++) {
+        var obj, i;
+        for (i = 0; i < entities.size(); i++) {
             obj = entities.toArray()[i];
             session['saveOrUpdate(java.lang.String,java.lang.Object)']
                     (obj.$type$, obj);
