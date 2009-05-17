@@ -21,10 +21,10 @@ var Storable = require('../storable').Storable;
 Storable.setStoreImplementation(this);
 
 var __shared__ = true;
-const log = require('helma/logging').getLogger(__name__);
+var log = require('helma/logging').getLogger(__name__);
 
-const configPropsFileRelativePath = 'config/hibernate.properties';
-const mappingsDirRelativePath = 'db/mappings';
+var configPropsFileRelativePath = 'config/hibernate.properties';
+var mappingsDirRelativePath = 'db/mappings';
 var config, isConfigured = false;
 var sessionFactory;
 
@@ -71,8 +71,8 @@ function getSession() {
  * Sets basic Hibernate configuration.
  */
 function configure() {
-    const mappingsDirAbsolutePath = getResource(mappingsDirRelativePath).path;
-    const configPropsFileAbsolutePath = getResource(configPropsFileRelativePath).path;
+    var mappingsDirAbsolutePath = getResource(mappingsDirRelativePath).path;
+    var configPropsFileAbsolutePath = getResource(configPropsFileRelativePath).path;
     var configPropsFile = new java.io.File(configPropsFileAbsolutePath);
     var fileInputStream = new java.io.FileInputStream(configPropsFile);
     var configProps = new java.util.Properties();
