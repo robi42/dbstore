@@ -123,8 +123,13 @@ function all(type) {
 
 function get(type, id) {
     var session = getSession();
-    return new Storable(type, new ScriptableMap(session
-            .get(new java.lang.String(type), new java.lang.Long(id))));
+    beginTxn(session);
+    var result = session.get(new java.lang.String(type), new java.lang.Long(id));
+    if (result != null) {
+        result = new Storable(type, new ScriptableMap(result));
+    }
+    commitTxn(session);
+    return result;
 }
 
 function save(props, entity, entities) {
