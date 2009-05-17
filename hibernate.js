@@ -11,22 +11,20 @@ addToClasspath('./lib/ehcache-1.2.3.jar');
 addToClasspath('./lib/hibernate3.jar');
 addToClasspath('./lib/javassist-3.4.GA.jar');
 addToClasspath('./lib/jta-1.1.jar');
-addToClasspath('./lib/slf4j-api-1.4.2.jar');
-addToClasspath('./lib/slf4j-log4j12-1.4.2.jar');
 
 importPackage(org.hibernate.cfg);
 importPackage(org.hibernate.proxy.map);
 
-export('Storable');
+export('Storable', 'getSession', 'beginTxn', 'commitTxn');
 
 var Storable = require('../storable').Storable;
 Storable.setStoreImplementation(this);
 
 var __shared__ = true;
-var log = require('helma/logging').getLogger(__name__);
+const log = require('helma/logging').getLogger(__name__);
 
-var configPropsFileRelativePath = 'config/hibernate.properties';
-var mappingsDirRelativePath = 'db/mappings';
+const configPropsFileRelativePath = 'config/hibernate.properties';
+const mappingsDirRelativePath = 'db/mappings';
 var config, isConfigured = false;
 var sessionFactory;
 
@@ -73,8 +71,8 @@ function getSession() {
  * Sets basic Hibernate configuration.
  */
 function configure() {
-    var mappingsDirAbsolutePath = getResource(mappingsDirRelativePath).path;
-    var configPropsFileAbsolutePath = getResource(configPropsFileRelativePath).path;
+    const mappingsDirAbsolutePath = getResource(mappingsDirRelativePath).path;
+    const configPropsFileAbsolutePath = getResource(configPropsFileRelativePath).path;
     var configPropsFile = new java.io.File(configPropsFileAbsolutePath);
     var fileInputStream = new java.io.FileInputStream(configPropsFile);
     var configProps = new java.util.Properties();
@@ -111,8 +109,7 @@ function all(type) {
     var session = getSession();
     beginTxn(session);
     var criteria = session.createCriteria(type);
-    // caching doesn't work right, currently
-    //criteria.setCacheable(true);
+    criteria.setCacheable(true);
     var i, result = new ScriptableList(criteria.list());
     for (i in result) {
         result[i] = new Storable(result[i].$type$, new ScriptableMap(result[i]));
