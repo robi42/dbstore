@@ -22,7 +22,6 @@ Storable.setStoreImplementation(this);
 var __shared__ = true;
 var log = require('helma/logging').getLogger(__name__);
 
-// used to get paths of hibernate.properties and mapping files
 var configPropsFileRelativePath = 'config/hibernate.properties';
 var mappingsDirRelativePath = 'db/mappings';
 var config, isConfigured = false;
