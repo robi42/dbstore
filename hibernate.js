@@ -37,7 +37,7 @@ function beginTxn(session) {
         var txn = sess.beginTransaction();
     } catch (e) {
         txn.rollback();
-        log.error('Error in beginTxn: ' + e.message);
+        log.error('Error in beginTxn:');
         throw e;
     }
 }
@@ -52,7 +52,7 @@ function commitTxn(session) {
         txn.commit();
     } catch (e) {
         txn.rollback();
-        log.error('Error in commitTxn: ' + e.message);
+        log.error('Error in commitTxn:');
         throw e;
     }
 }
@@ -72,7 +72,8 @@ function getSession() {
  */
 function configure() {
     var mappingsDirAbsolutePath = getResource(mappingsDirRelativePath).path;
-    var configPropsFileAbsolutePath = getResource(configPropsFileRelativePath).path;
+    var configPropsFileAbsolutePath =
+            getResource(configPropsFileRelativePath).path;
     var configPropsFile = new java.io.File(configPropsFileAbsolutePath);
     var fileInputStream = new java.io.FileInputStream(configPropsFile);
     var configProps = new java.util.Properties();
@@ -112,7 +113,8 @@ function all(type) {
     criteria.setCacheable(true);
     var i, result = new ScriptableList(criteria.list());
     for (i in result) {
-        result[i] = new Storable(result[i].$type$, new ScriptableMap(result[i]));
+        result[i] = new Storable(result[i].$type$,
+                new ScriptableMap(result[i]));
     }
     commitTxn(session);
     return result;
@@ -121,7 +123,8 @@ function all(type) {
 function get(type, id) {
     var session = getSession();
     beginTxn(session);
-    var result = session.get(new java.lang.String(type), new java.lang.Long(id));
+    var result = session.get(new java.lang.String(type),
+            new java.lang.Long(id));
     if (result != null) {
         result = new Storable(type, new ScriptableMap(result));
     }
@@ -146,13 +149,18 @@ function save(props, entity, entities) {
             value.save(entities);
             value = value._key;
         }
-        entity[id] = value;
+        entity.put(id, value);
     }
     if (isRoot) {
         var session = getSession();
         var obj, i;
         for (i = 0; i < entities.size(); i++) {
             obj = entities.toArray()[i];
+            // HACK: butt-ugly workaround for ID handling, but it works.
+            if (obj.get('id') != null) {
+                obj.put('id', new java.lang.Long(new java.lang.Double
+                        (obj.get('id')).longValue()));
+            }
             session['saveOrUpdate(java.lang.String,java.lang.Object)']
                     (obj.$type$, obj);
         }
@@ -179,8 +187,8 @@ function getEntity(type, arg) {
     if (isEntity(arg)) {
         return arg;
     } else if (arg instanceof Object) {
-        var entity = new ScriptableMap(new java.util.HashMap(arg));
-        entity.$type$ = type;
+        var entity = new java.util.HashMap(arg);
+        entity.put('$type$', type);
         return entity;
     }
     return null;
