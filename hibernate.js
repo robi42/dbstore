@@ -23,8 +23,8 @@ Storable.setStoreImplementation(this);
 var __shared__ = true;
 var log = require('helma/logging').getLogger(__name__);
 
-var configPropsFileRelativePath = 'config' + java.io.File.separator
-        + 'hibernate.properties';
+var configPropsFileRelativePath = 'config' + require('helma/file')
+        .File.separator + 'hibernate.properties';
 var mappingsDirRelativePath = 'db';
 var config, isConfigured = false;
 var sessionFactory;
