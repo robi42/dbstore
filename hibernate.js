@@ -35,9 +35,9 @@ var sessionFactory;
  * @param func
  */
 function doInTxn(func) {
+    var txn, session = getSession();
     try {
-        var session = getSession();
-        var txn = session.beginTransaction();
+        txn = session.beginTransaction();
         var result = func(session);
         txn.commit();
         return result;
@@ -56,9 +56,9 @@ function doInTxn(func) {
  * @param session
  */
 function beginTxn(session) {
+    var txn, sess = session || getSession();
     try {
-        var sess = session || getSession();
-        var txn = sess.beginTransaction();
+        txn = sess.beginTransaction();
     } catch (e) {
         if (txn != null) {
             txn.rollback();
@@ -74,9 +74,9 @@ function beginTxn(session) {
  * @param session
  */
 function commitTxn(session) {
+    var txn, sess = session || getSession();
     try {
-        var sess = session || getSession();
-        var txn = sess.transaction;
+        txn = sess.transaction;
         txn.commit();
     } catch (e) {
         if (txn != null) {
