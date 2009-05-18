@@ -1,5 +1,5 @@
 /**
- * Module for using Hibernate as ORM/persistence layer.
+ * Storage module for using Hibernate as ORM/persistence layer.
  */
 
 addToClasspath('./lib/antlr-2.7.6.jar');
@@ -15,7 +15,7 @@ addToClasspath('./lib/jta-1.1.jar');
 importPackage(org.hibernate.cfg);
 importPackage(org.hibernate.proxy.map);
 
-export('Storable', 'getSession', 'beginTxn', 'commitTxn');
+export('Storable', 'getSession', 'doInTxn');
 
 var Storable = require('../storable').Storable;
 Storable.setStoreImplementation(this);
@@ -30,21 +30,48 @@ var config, isConfigured = false;
 var sessionFactory;
 
 /**
- * Begins a Hibernate Session transaction.
+ * Do something inside a Hibernate session transaction.
+ *
+ * @param func
+ */
+function doInTxn(func) {
+    try {
+        var session = getSession();
+        var txn = session.beginTransaction();
+        var result = func(session);
+        txn.commit();
+        return result;
+    } catch (e) {
+        if (txn != null) {
+            txn.rollback();
+        }
+        log.error('Problem occured within Hibernate session transaction.');
+        throw e;
+    }
+}
+
+/**
+ * Begins a Hibernate session transaction.
+ *
+ * @param session
  */
 function beginTxn(session) {
     try {
         var sess = session || getSession();
         var txn = sess.beginTransaction();
     } catch (e) {
-        txn.rollback();
-        log.error('Error in beginTxn:');
+        if (txn != null) {
+            txn.rollback();
+        }
+        log.error('Problem occured within Hibernate session transaction.');
         throw e;
     }
 }
 
 /**
- * Commits a Hibernate Session transaction.
+ * Commits a Hibernate session transaction.
+ *
+ * @param session
  */
 function commitTxn(session) {
     try {
@@ -52,8 +79,10 @@ function commitTxn(session) {
         var txn = sess.transaction;
         txn.commit();
     } catch (e) {
-        txn.rollback();
-        log.error('Error in commitTxn:');
+        if (txn != null) {
+            txn.rollback();
+        }
+        log.error('Problem occured within Hibernate session transaction.');
         throw e;
     }
 }
@@ -69,7 +98,7 @@ function getSession() {
 }
 
 /**
- * Sets basic Hibernate configuration.
+ * Configures Hibernate.
  */
 function configure() {
     var mappingsDirAbsolutePath = getResource(mappingsDirRelativePath).path;
@@ -107,32 +136,48 @@ function configure() {
     sessionFactory = config.buildSessionFactory();
 }
 
+/**
+ * Impl. of corresponding store method.
+ *
+ * @param type
+ */
 function all(type) {
-    var session = getSession();
-    beginTxn(session);
-    var criteria = session.createCriteria(type);
-    criteria.setCacheable(true);
-    var i, result = new ScriptableList(criteria.list());
-    for (i in result) {
-        result[i] = new Storable(result[i].$type$,
-                new ScriptableMap(result[i]));
-    }
-    commitTxn(session);
-    return result;
+    return doInTxn(function (session) {
+        var criteria = session.createCriteria(type);
+        criteria.setCacheable(true);
+        var i, result = new ScriptableList(criteria.list());
+        for (i in result) {
+            result[i] = new Storable(result[i].$type$,
+                    new ScriptableMap(result[i]));
+        }
+        return result;
+    });
 }
 
+/**
+ * Impl. of corresponding store method.
+ *
+ * @param type
+ * @param id
+ */
 function get(type, id) {
-    var session = getSession();
-    beginTxn(session);
-    var result = session.get(new java.lang.String(type),
-            new java.lang.Long(id));
-    if (result != null) {
-        result = new Storable(type, new ScriptableMap(result));
-    }
-    commitTxn(session);
-    return result;
+    return doInTxn(function (session) {
+        var result = session.get(new java.lang.String(type),
+                new java.lang.Long(id));
+        if (result != null) {
+            result = new Storable(type, new ScriptableMap(result));
+        }
+        return result;
+    });
 }
 
+/**
+ * Impl. of corresponding store method.
+ *
+ * @param props
+ * @param entity
+ * @param entities
+ */
 function save(props, entity, entities) {
     if (entities && entities.contains(entity)) {
         return;
@@ -157,7 +202,7 @@ function save(props, entity, entities) {
         var obj, i;
         for (i = 0; i < entities.size(); i++) {
             obj = entities.toArray()[i];
-            // HACK: butt-ugly workaround for ID handling, but it works.
+            // HACK: butt-ugly workaround for ID handling, but it works. ^^
             if (obj.get('id') != null) {
                 obj.put('id', new java.lang.Long(new java.lang.Double
                         (obj.get('id')).longValue()));
@@ -169,6 +214,12 @@ function save(props, entity, entities) {
     }
 }
 
+/**
+ * Impl. of corresponding store method.
+ *
+ * @param type
+ * @param arg
+ */
 function getProps(type, arg) {
     if (arg instanceof Object) {
         arg.$type$ = type;
@@ -184,6 +235,12 @@ function getProps(type, arg) {
     return null;
 }
 
+/**
+ * Impl. of corresponding store method.
+ *
+ * @param type
+ * @param arg
+ */
 function getEntity(type, arg) {
     if (isEntity(arg)) {
         return arg;
@@ -195,10 +252,20 @@ function getEntity(type, arg) {
     return null;
 }
 
+/**
+ * Helper method for determining Entity.
+ *
+ * @param value
+ */
 function isEntity(value) {
     return value instanceof MapProxy;
 }
 
+/**
+ * Helper method for determining Storable.
+ *
+ * @param value
+ */
 function isStorable(value) {
     return value instanceof Storable;
 }
