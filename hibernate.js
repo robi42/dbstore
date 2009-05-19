@@ -12,8 +12,8 @@ addToClasspath('./lib/hibernate3.jar');
 addToClasspath('./lib/javassist-3.4.GA.jar');
 addToClasspath('./lib/jta-1.1.jar');
 
-importPackage(org.hibernate.cfg);
-importPackage(org.hibernate.proxy.map);
+importClass(org.hibernate.cfg.Configuration);
+importClass(org.hibernate.proxy.map.MapProxy);
 
 export('Storable', 'getSession', 'doInTxn');
 
@@ -23,9 +23,8 @@ Storable.setStoreImplementation(this);
 var __shared__ = true;
 var log = require('helma/logging').getLogger(__name__);
 
-var configPropsFileRelativePath = 'config' + require('helma/file')
-        .File.separator + 'hibernate.properties';
-var mappingsDirRelativePath = 'db';
+var configPropsFileRelativePath = 'config/hibernate.properties';
+var mappingsDirRelativePath = 'config';
 var config, isConfigured = false;
 var sessionFactory;
 
@@ -202,10 +201,8 @@ function save(props, entity, entities) {
         var obj, i;
         for (i = 0; i < entities.size(); i++) {
             obj = entities.toArray()[i];
-            // HACK: butt-ugly workaround for ID handling, but it works. ^^
             if (obj.get('id') != null) {
-                obj.put('id', new java.lang.Long(new java.lang.Double
-                        (obj.get('id')).longValue()));
+                obj.put('id', new java.lang.Long(obj.get('id')));
             }
             session['saveOrUpdate(java.lang.String,java.lang.Object)']
                     (obj.$type$, obj);
